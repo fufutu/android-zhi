@@ -19,6 +19,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        ndk {
+            // 32-bit ARM (most Xiaodu Smart Screens)
+            // If `adb shell getprop ro.product.cpu.abi` returns "x86",
+            // change this to: abiFilters.add("x86")
+            abiFilters.add("armeabi-v7a")
+        }
+
         buildConfigField("String", "WEBSOCKET_URL", "\"wss://api.tenclass.net/xiaozhi/v1/\"")
         buildConfigField("String", "OTA_VERSION_URL", "\"https://api.tenclass.net/xiaozhi/ota/\"")
     }
@@ -42,9 +49,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.10"
     }
     packaging {
         resources {
