@@ -44,11 +44,15 @@ class VoiceService : Service() {
     private val binder = LocalBinder()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     
-    private val _deviceState = MutableStateFlow<DeviceState>(DeviceState.Idle)
-    val deviceState: StateFlow<DeviceState> = _deviceState.asStateFlow()
+    private val _deviceState: MutableStateFlow<DeviceState>
+        get() = globalDeviceState
+    val deviceState: StateFlow<DeviceState>
+        get() = globalDeviceState
     
-    private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
-    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+    private val _connectionState: MutableStateFlow<ConnectionState>
+        get() = globalConnectionState
+    val connectionState: StateFlow<ConnectionState>
+        get() = globalConnectionState
     
     private var listeningMode = ListeningMode.MANUAL
     private var keepListening = false
@@ -61,6 +65,7 @@ class VoiceService : Service() {
     
     override fun onCreate() {
         super.onCreate()
+        instance = this
         createNotificationChannel()
         setupProtocol()
         observeAudioData()
@@ -74,6 +79,7 @@ class VoiceService : Service() {
     }
     
     override fun onDestroy() {
+        instance = null
         super.onDestroy()
         scope.cancel()
         stopAudio()
@@ -234,5 +240,12 @@ class VoiceService : Service() {
     companion object {
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "voice_service_channel"
+        
+        @Volatile
+        var instance: VoiceService? = null
+            private set
+        
+        val globalDeviceState = MutableStateFlow<DeviceState>(DeviceState.Idle)
+        val globalConnectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     }
 }
