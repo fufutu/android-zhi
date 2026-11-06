@@ -98,8 +98,6 @@ dependencies {
     implementation(libs.datastore.preferences)
 
     // Opus
-    implementation(libs.opus.android)
-
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

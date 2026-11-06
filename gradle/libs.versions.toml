@@ -17,7 +17,6 @@ room = "2.6.1"
 hilt = "2.50"
 ksp = "2.0.0-1.0.22"
 datastore = "1.1.2"
-opus = "0.10.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -66,7 +65,6 @@ hilt-navigation = { group = "androidx.hilt", name = "hilt-navigation-compose", v
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 # Opus
-opus-android = { group = "io.github.tans5", name = "opus", version.ref = "opus" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
