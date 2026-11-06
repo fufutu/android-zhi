@@ -1,96 +1,68 @@
 #!/usr/bin/env python3
 """
-patch_android_zhi_opus.py
-=========================
-移除项目中无效的 io.github.tans5:opus 依赖。
+patch_android_zhi_aapt2_icon.py
+===============================
+修复 AAPT2 资源链接错误。
 
 原因：
-  io.github.tans5:opus:0.10.0 并未发布到 Google Maven 或 Maven Central。
-  同时，项目中的 AudioPlayer/AudioRecorder 直接使用 Android 原生的
-  AudioTrack/AudioRecord 处理 PCM 数据，并未实际调用 Opus API。
+  项目 minSdk=24，但资源目录 mipmap-anydpi-v26 包含自适应图标。
+  API 26 以下设备无法解析该资源，导致 AAPT2 在链接阶段失败。
 
 操作：
-  1. 从 gradle/libs.versions.toml 中删除 opus 相关的 version 和 library 定义。
-  2. 从 app/build.gradle.kts 中删除 implementation(libs.opus.android) 行。
+  删除 app/src/main/res/mipmap-anydpi-v26/ 目录。
+  （API 24-25 会回退到 mipmap-* 目录下的传统 PNG 图标）
 
 用法：
   cd /path/to/android-zhi
-  python3 patch_android_zhi_opus.py
+  python3 patch_android_zhi_aapt2_icon.py
 """
 
-import re
+import shutil
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path.cwd()
 
+def fix_adaptive_icon() -> None:
+    print("[1/1] 清理冲突的自适应图标资源")
 
-def patch_version_catalog() -> None:
-    print("[1/2] 清理 gradle/libs.versions.toml")
-    toml_path = REPO_ROOT / "gradle" / "libs.versions.toml"
-    if not toml_path.exists():
-        print("  [!!] 找不到 gradle/libs.versions.toml，跳过")
+    target_dir = REPO_ROOT / "app" / "src" / "main" / "res" / "mipmap-anydpi-v26"
+
+    if not target_dir.exists():
+        print(f"  [--] 目录不存在，可能已修复: {target_dir.relative_to(REPO_ROOT)}")
         return
 
-    content = toml_path.read_text(encoding="utf-8")
-    original = content
-
-    # 删除 [versions] 中的 opus 行
-    content = re.sub(r'^opus\s*=.*\n', '', content, flags=re.MULTILINE)
-
-    # 删除 [libraries] 中的 opus-android 行
-    content = re.sub(r'^opus-android\s*=.*\n', '', content, flags=re.MULTILINE)
-
-    if content != original:
-        toml_path.write_text(content, encoding="utf-8")
-        print("  [OK] 已从 libs.versions.toml 移除 opus 定义")
-    else:
-        print("  [--] libs.versions.toml 中无 opus 定义（或已清理）")
-
-
-def patch_app_build_gradle() -> None:
-    print("[2/2] 清理 app/build.gradle.kts")
-    gradle_path = REPO_ROOT / "app" / "build.gradle.kts"
-    if not gradle_path.exists():
-        print("  [!!] 找不到 app/build.gradle.kts，跳过")
-        return
-
-    content = gradle_path.read_text(encoding="utf-8")
-    original = content
-
-    # 删除 implementation(libs.opus.android) 行，兼容可能的空白字符
-    pattern = re.compile(r'^\s*implementation\(libs\.opus\.android\)\s*\n', re.MULTILINE)
-    if pattern.search(content):
-        content = pattern.sub('', content)
-        print("  [OK] 已移除 implementation(libs.opus.android)")
-    else:
-        print("  [--] app/build.gradle.kts 中未找到 opus 依赖（或已清理）")
-
-    if content != original:
-        gradle_path.write_text(content, encoding="utf-8")
-
+    try:
+        shutil.rmtree(target_dir)
+        print(f"  [OK] 已删除目录: {target_dir.relative_to(REPO_ROOT)}")
+    except OSError as e:
+        print(f"  [!!] 删除目录失败: {e}")
+        print("       请手动删除该目录后重新构建。")
+        sys.exit(1)
 
 def main() -> None:
     print("=" * 58)
-    print("  移除无效的 io.github.tans5:opus 依赖")
+    print("  修复 AAPT2 自适应图标资源链接错误 (minSdk=24)")
     print("=" * 58)
 
     if not (REPO_ROOT / "settings.gradle.kts").exists():
         print("错误：请在仓库根目录（settings.gradle.kts 所在目录）运行")
         sys.exit(1)
 
-    patch_version_catalog()
-    patch_app_build_gradle()
+    fix_adaptive_icon()
 
     print()
     print("=" * 58)
     print("完成。接下来：")
-    print("  git add gradle/libs.versions.toml app/build.gradle.kts")
-    print("  git commit -m 'fix: remove unavailable io.github.tans5:opus dependency'")
+    print("  git add -A")
+    print("  git commit -m 'fix: remove adaptive icon resources causing AAPT2 failure on minSdk 24'")
     print("  git push")
     print("  到 GitHub Actions 重新运行 workflow")
+    print()
+    print("注意：请确认 app/src/main/res/mipmap-*/ 目录下存在")
+    print("       ic_launcher.png（或其他传统图标），否则 API 24/25 设备将无图标。")
     print("=" * 58)
-
 
 if __name__ == "__main__":
     main()
+
